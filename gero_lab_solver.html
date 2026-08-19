@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gero Laboratory - Solver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --stone-950: #14100c;
+    --stone-900: #1d1712;
+    --stone-800: #2a221a;
+    --stone-700: #3a2f24;
+    --torch: #d99a3f;
+    --torch-bright: #f0b95a;
+    --rune: #5c8a94;
+    --parchment: #e8dcc4;
+    --parchment-dim: #b8ac93;
+    --blood: #8f3b3b;
+    --tile-C: #16130f;
+    --tile-Z: #d4a417;
+    --tile-B: #e9e2d0;
+    --tile-S: #6d6a63;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(217,154,63,0.08), transparent 55%),
+      radial-gradient(ellipse at 80% 100%, rgba(92,138,148,0.07), transparent 55%),
+      var(--stone-950);
+    color: var(--parchment);
+    font-family: 'Spectral', serif;
+    padding: 32px 16px 64px;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.25em;
+    font-size: 11px;
+    color: var(--torch);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0 0 6px;
+    color: var(--parchment);
+    letter-spacing: 0.02em;
+  }
+
+  .sub {
+    color: var(--parchment-dim);
+    font-size: 15px;
+    max-width: 520px;
+    margin: 0 auto 40px;
+    line-height: 1.5;
+  }
+
+  .panel {
+    background: linear-gradient(180deg, var(--stone-900), var(--stone-800));
+    border: 1px solid var(--stone-700);
+    border-radius: 4px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+    padding: 32px;
+  }
+
+  /* -- legenda kolorow -- */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--parchment-dim);
+  }
+  .swatch {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* -- board layout -- */
+  .board-area {
+    display: grid;
+    grid-template-columns: 56px repeat(4, 68px) 56px;
+    grid-template-rows: 56px repeat(4, 68px) 56px;
+    gap: 6px;
+    justify-content: center;
+    margin: 0 auto 30px;
+    width: max-content;
+  }
+
+  .letter-btn {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 17px;
+    border-radius: 4px;
+    border: 1px solid var(--stone-700);
+    background: var(--stone-800);
+    color: var(--torch);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    user-select: none;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .letter-btn.active-move {
+    background: var(--torch);
+    color: var(--stone-950);
+    box-shadow: 0 0 18px rgba(217,154,63,0.75);
+    transform: scale(1.06);
+  }
+
+  .cell {
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.4);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.35), inset 0 -2px 4px rgba(255,255,255,0.08);
+  }
+  .cell:hover { transform: scale(1.04); z-index: 2; }
+  .cell.C { background: #17130e; }
+  .cell.Z { background: #d4a417; }
+  .cell.B { background: #e9e2d0; }
+  .cell.S { background: #6d6a63; }
+  .cell.highlight-path {
+    outline: 2px solid var(--rune);
+    outline-offset: -2px;
+  }
+
+  /* -- controls -- */
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  button.action {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 22px;
+    border-radius: 3px;
+    border: 1px solid var(--torch);
+    background: transparent;
+    color: var(--torch);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  button.action:hover { background: var(--torch); color: var(--stone-950); }
+  button.action.secondary {
+    border-color: var(--stone-700);
+    color: var(--parchment-dim);
+  }
+  button.action.secondary:hover {
+    background: var(--stone-700);
+    color: var(--parchment);
+  }
+  button.action:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  button.action:disabled:hover { background: transparent; color: var(--torch); }
+
+  /* -- result -- */
+  #result {
+    border-top: 1px solid var(--stone-700);
+    padding-top: 24px;
+    margin-top: 8px;
+  }
+
+  .status {
+    text-align: center;
+    font-size: 14px;
+    color: var(--parchment-dim);
+    margin-bottom: 18px;
+    min-height: 18px;
+  }
+  .status.error { color: var(--blood); }
+  .status.success { color: var(--rune); }
+
+  .sequence {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .seq-step {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 15px;
+    width: 34px; height: 34px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--stone-800);
+    border: 1px solid var(--stone-700);
+    color: var(--parchment-dim);
+    transition: all 0.25s ease;
+  }
+  .seq-step.done {
+    background: var(--rune);
+    border-color: var(--rune);
+    color: var(--stone-950);
+  }
+  .seq-step.current {
+    background: var(--torch);
+    border-color: var(--torch);
+    color: var(--stone-950);
+    box-shadow: 0 0 14px rgba(217,154,63,0.6);
+  }
+  .seq-arrow {
+    color: var(--stone-700);
+    align-self: center;
+    font-size: 14px;
+  }
+
+  .playback {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+  }
+  .playback .step-count {
+    font-size: 13px;
+    color: var(--parchment-dim);
+    min-width: 90px;
+    text-align: center;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 26px;
+    font-size: 12px;
+    color: var(--stone-700);
+  }
+
+  @media (max-width: 600px) {
+    .board-area {
+      grid-template-columns: 42px repeat(4, 54px) 42px;
+      grid-template-rows: 42px repeat(4, 54px) 42px;
+      gap: 4px;
+    }
+    .letter-btn { font-size: 14px; }
+    h1 { font-size: 26px; }
+    .panel { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Gero Laboratory Quest</div>
+    <h1>Gero Laboratory - Solver</h1>
+    <p class="sub">Kliknij kratki, aby odtworzyć aktualny (losowy) układ z gry, a program wyliczy w jakiej kolejności wejść na litery A–H, żeby ułożyć poziome pasy.</p>
+    <p class="sub" style="margin-top:-24px;">
+      <a href="https://dblots.pl/viewtopic.php?t=93578" target="_blank" rel="noopener noreferrer" style="color: var(--torch); text-decoration: none; border-bottom: 1px solid var(--torch);">Zobacz pełny poradnik do questu →</a>
+    </p>
+  </header>
+
+  <div class="panel">
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background:#17130e"></span>Czarny</div>
+      <div class="legend-item"><span class="swatch" style="background:#d4a417"></span>Żółty</div>
+      <div class="legend-item"><span class="swatch" style="background:#e9e2d0"></span>Biały</div>
+      <div class="legend-item"><span class="swatch" style="background:#6d6a63"></span>Szary</div>
+    </div>
+
+    <div class="board-area" id="board"></div>
+
+    <div class="controls">
+      <button class="action" id="solveBtn">Rozwiąż</button>
+      <button class="action secondary" id="resetBtn">Wyczyść planszę</button>
+    </div>
+
+    <div id="result" style="display:none;">
+      <div class="status" id="status"></div>
+      <div class="sequence" id="sequence"></div>
+      <div class="playback" id="playback" style="display:none;">
+        <button class="action secondary" id="prevBtn">◀ Cofnij</button>
+        <div class="step-count" id="stepCount"></div>
+        <button class="action secondary" id="nextBtn">Dalej ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Gero Laboratory &nbsp;|&nbsp; Kolumny: G↓ · A↓ · H↓ · B↓ &nbsp;|&nbsp; Wiersze: C→ · D→ · E→ · F→</footer>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// LOGIKA PLANSZY (odzwierciedla regulamin questa ustalony z GM)
+// ---------------------------------------------------------------------
+const COLORS = ["C", "Z", "B", "S"]; // czarny, zolty, bialy, szary
+const TARGET = ["C","C","C","C", "Z","Z","Z","Z", "B","B","B","B", "S","S","S","S"];
+
+// typ, indeks (0-3), kierunek: dla kolumny +1=dol,-1=gora; dla wiersza +1=prawo,-1=lewo
+const MOVES = {
+  A: ["col", 1, +1],
+  B: ["col", 3, +1],
+  G: ["col", 0, +1],
+  H: ["col", 2, +1],
+  C: ["row", 0, +1],
+  E: ["row", 2, +1],
+  D: ["row", 1, +1],
+  F: ["row", 3, +1],
+};
+
+function rotateList(lst, direction) {
+  if (direction > 0) return [lst[lst.length - 1], ...lst.slice(0, -1)];
+  return [...lst.slice(1), lst[0]];
+}
+
+function applyTransform(state, typ, idx, direction) {
+  const grid = [0,1,2,3].map(r => state.slice(r*4, r*4+4));
+  if (typ === "col") {
+    let col = [0,1,2,3].map(r => grid[r][idx]);
+    col = rotateList(col, direction);
+    for (let r=0;r<4;r++) grid[r][idx] = col[r];
+  } else {
+    grid[idx] = rotateList(grid[idx], direction);
+  }
+  return grid.flat();
+}
+
+function forwardMove(state, name) {
+  const [typ, idx, dir] = MOVES[name];
+  return applyTransform(state, typ, idx, dir);
+}
+function backwardPredecessor(state, name) {
+  const [typ, idx, dir] = MOVES[name];
+  return applyTransform(state, typ, idx, -dir);
+}
+function key(state) { return state.join(""); }
+
+function solve(start, maxDepth = 40) {
+  if (key(start) === key(TARGET)) return [];
+
+  const forwardVisited = new Map([[key(start), [null, null, start]]]);
+  const backwardVisited = new Map([[key(TARGET), [null, null, TARGET]]]);
+  let forwardFrontier = [start];
+  let backwardFrontier = [TARGET];
+
+  const reconstruct = (meetKey) => {
+    let pathF = [];
+    let k = meetKey;
+    while (forwardVisited.get(k)[1] !== null) {
+      const [prevKey, move] = forwardVisited.get(k);
+      pathF.push(move);
+      k = prevKey;
+    }
+    pathF.reverse();
+
+    let pathB = [];
+    k = meetKey;
+    while (backwardVisited.get(k)[1] !== null) {
+      const [nextKey, move] = backwardVisited.get(k);
+      pathB.push(move);
+      k = nextKey;
+    }
+    return [...pathF, ...pathB];
+  };
+
+  for (let depth = 0; depth < maxDepth; depth++) {
+    if (forwardFrontier.length <= backwardFrontier.length) {
+      const newFrontier = [];
+      for (const state of forwardFrontier) {
+        for (const name of Object.keys(MOVES)) {
+          const nxt = forwardMove(state, name);
+          const k = key(nxt);
+          if (!forwardVisited.has(k)) {
+            forwardVisited.set(k, [key(state), name, nxt]);
+            newFrontier.push(nxt);
+            if (backwardVisited.has(k)) return reconstruct(k);
+          }
+        }
+      }
+      forwardFrontier = newFrontier;
+    } else {
+      const newFrontier = [];
+      for (const state of backwardFrontier) {
+        for (const name of Object.keys(MOVES)) {
+          const pred = backwardPredecessor(state, name);
+          const k = key(pred);
+          if (!backwardVisited.has(k)) {
+            backwardVisited.set(k, [key(state), name, pred]);
+            newFrontier.push(pred);
+            if (forwardVisited.has(k)) return reconstruct(k);
+          }
+        }
+      }
+      backwardFrontier = newFrontier;
+    }
+    if (forwardFrontier.length === 0 || backwardFrontier.length === 0) break;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------
+// UI
+// ---------------------------------------------------------------------
+let boardState = Array(16).fill("C");
+let solution = null;
+let stepIndex = 0; // ile ruchow z solution juz "wykonanych" w podgladzie
+
+const boardEl = document.getElementById("board");
+
+// mapowanie ukladu wizualnego 6x6 (z marginesami na litery), zgodnie z obrazkiem gracza
+// wiersz 0 (top margin): puste, puste, A, B, puste, puste  -- A nad kol1, B nad kol3
+// nastepnie 4 wiersze planszy z C/E po lewej, D/F po prawej
+// wiersz ostatni: puste, puste, G, H, puste, puste -- G pod kol0, H pod kol2
+function buildBoard() {
+  boardEl.innerHTML = "";
+  const layout = [];
+
+  // gorny margines
+  layout.push({type:"empty"});
+  layout.push({type:"letter", label:"G", col:0}); // nad kolumna 0? nie - to bedzie u dolu, tu placeholder empty
+  layout.push({type:"empty"});
+  layout.push({type:"empty"});
+  layout.push({type:"empty"});
+  layout.push({type:"empty"});
+
+  // Zbudujemy recznie, prosciej: uzyjemy CSS grid 6x6 i wstawimy elementy wg wspolrzednych.
+  boardEl.innerHTML = "";
+  const put = (col, row, el) => {
+    el.style.gridColumn = (col+1);
+    el.style.gridRow = (row+1);
+    boardEl.appendChild(el);
+  };
+
+  const makeLetterBtn = (label) => {
+    const d = document.createElement("div");
+    d.className = "letter-btn";
+    d.textContent = label;
+    d.dataset.letter = label;
+    return d;
+  };
+
+  // Gorny rzad liter: A nad kolumna 1 (index 1 -> siatka col 2), B nad kolumna 3 (index3 -> siatka col4)
+  put(2, 0, makeLetterBtn("A"));
+  put(4, 0, makeLetterBtn("B"));
+
+  // Dolny rzad liter: G pod kolumna 0 (siatka col1), H pod kolumna 2 (siatka col3)
+  put(1, 5, makeLetterBtn("G"));
+  put(3, 5, makeLetterBtn("H"));
+
+  // Lewe litery: C przy wierszu0 (siatka row1), E przy wierszu2 (siatka row3)
+  put(0, 1, makeLetterBtn("C"));
+  put(0, 3, makeLetterBtn("E"));
+
+  // Prawe litery: D przy wierszu1 (siatka row2), F przy wierszu3 (siatka row4)
+  put(5, 2, makeLetterBtn("D"));
+  put(5, 4, makeLetterBtn("F"));
+
+  // Kratki 4x4 na srodku (siatka col2-5, row2-5 czyli index 1..4)
+  for (let r=0; r<4; r++) {
+    for (let c=0; c<4; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell " + boardState[r*4+c];
+      cell.dataset.idx = r*4+c;
+      cell.addEventListener("click", () => cycleCell(r*4+c));
+      put(c+1, r+1, cell);
+    }
+  }
+}
+
+function cycleCell(idx) {
+  const cur = boardState[idx];
+  const next = COLORS[(COLORS.indexOf(cur)+1) % COLORS.length];
+  boardState[idx] = next;
+  const cellEl = boardEl.querySelector(`.cell[data-idx="${idx}"]`);
+  cellEl.className = "cell " + next;
+  clearResult();
+}
+
+function clearResult() {
+  solution = null;
+  stepIndex = 0;
+  document.getElementById("result").style.display = "none";
+  document.querySelectorAll(".letter-btn").forEach(b => b.classList.remove("active-move"));
+}
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  boardState = Array(16).fill("C");
+  buildBoard();
+  clearResult();
+});
+
+document.getElementById("solveBtn").addEventListener("click", () => {
+  const statusEl = document.getElementById("status");
+  const seqEl = document.getElementById("sequence");
+  const resultEl = document.getElementById("result");
+  const playbackEl = document.getElementById("playback");
+  resultEl.style.display = "block";
+  seqEl.innerHTML = "";
+  playbackEl.style.display = "none";
+  statusEl.className = "status";
+  statusEl.textContent = "Liczę…";
+
+  setTimeout(() => {
+    // walidacja: musi byc dokladnie po 4 z kazdego koloru, inaczej ukladu nie da sie ulozyc w pasy
+    const counts = {C:0,Z:0,B:0,S:0};
+    boardState.forEach(c => counts[c]++);
+    const bad = Object.entries(counts).find(([c,n]) => n !== 4);
+    if (bad) {
+      statusEl.className = "status error";
+      statusEl.textContent = `Uwaga: każdy kolor musi wystąpić dokładnie 4 razy (obecnie: czarny ${counts.C}, żółty ${counts.Z}, biały ${counts.B}, szary ${counts.S}). Sprawdź wpisany układ.`;
+      return;
+    }
+
+    solution = solve(boardState.slice());
+    if (solution === null) {
+      statusEl.className = "status error";
+      statusEl.textContent = "Nie znaleziono rozwiązania w rozsądnej liczbie ruchów. Sprawdź, czy układ na planszy się zgadza.";
+      return;
+    }
+    if (solution.length === 0) {
+      statusEl.className = "status success";
+      statusEl.textContent = "Ta plansza jest już ułożona — nic nie trzeba robić!";
+      return;
+    }
+
+    statusEl.className = "status success";
+    statusEl.textContent = `Znaleziono rozwiązanie: ${solution.length} ruchów. Wchodź kolejno na kratki oznaczone literami:`;
+
+    solution.forEach((mv, i) => {
+      const step = document.createElement("div");
+      step.className = "seq-step";
+      step.textContent = mv;
+      step.dataset.i = i;
+      seqEl.appendChild(step);
+      if (i < solution.length - 1) {
+        const arrow = document.createElement("div");
+        arrow.className = "seq-arrow";
+        arrow.textContent = "→";
+        seqEl.appendChild(arrow);
+      }
+    });
+
+    stepIndex = 0;
+    playbackEl.style.display = "flex";
+    updatePlayback();
+  }, 10);
+});
+
+function updatePlayback() {
+  const stepCountEl = document.getElementById("stepCount");
+  stepCountEl.textContent = `Krok ${stepIndex} / ${solution.length}`;
+  document.querySelectorAll(".seq-step").forEach(el => {
+    const i = parseInt(el.dataset.i, 10);
+    el.classList.toggle("done", i < stepIndex);
+    el.classList.toggle("current", i === stepIndex);
+  });
+  document.getElementById("prevBtn").disabled = stepIndex === 0;
+  document.getElementById("nextBtn").disabled = stepIndex >= solution.length;
+
+  // podswietl litere aktualnego ruchu na planszy
+  document.querySelectorAll(".letter-btn").forEach(b => b.classList.remove("active-move"));
+  if (stepIndex < solution.length) {
+    const letter = solution[stepIndex];
+    const btn = boardEl.querySelector(`.letter-btn[data-letter="${letter}"]`);
+    if (btn) btn.classList.add("active-move");
+  }
+
+  // pokaz stan planszy po wykonaniu stepIndex ruchow
+  let state = boardState.slice();
+  for (let i=0;i<stepIndex;i++) state = forwardMove(state, solution[i]);
+  for (let idx=0; idx<16; idx++) {
+    const cellEl = boardEl.querySelector(`.cell[data-idx="${idx}"]`);
+    cellEl.className = "cell " + state[idx] + (state[idx] !== boardState[idx] || stepIndex>0 ? "" : "");
+  }
+}
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  if (stepIndex < solution.length) { stepIndex++; updatePlayback(); }
+});
+document.getElementById("prevBtn").addEventListener("click", () => {
+  if (stepIndex > 0) { stepIndex--; updatePlayback(); }
+});
+
+buildBoard();
+</script>
+</body>
+</html>
