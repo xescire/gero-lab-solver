@@ -285,9 +285,9 @@
   <header>
     <div class="eyebrow">Gero Laboratory Quest</div>
     <h1>Gero Laboratory - Solver</h1>
-    <p class="sub">Ustaw kolory kafelków tak jak na mapie w grze, a kalkulator poda Ci dokładną kolejność wchodzenia na kratki A–H, żeby rozwiązać zagadkę.</p>
+    <p class="sub">Kliknij kratki, aby odtworzyć aktualny (losowy) układ z gry, a program wyliczy w jakiej kolejności wejść na litery A–H, żeby ułożyć poziome pasy.</p>
     <p class="sub" style="margin-top:-24px;">
-      <a href="https://dblots.pl/viewtopic.php?t=93578" target="_blank" rel="noopener noreferrer" style="color: var(--torch); text-decoration: none; border-bottom: 1px solid var(--torch);">Zobacz pełny poradnik do questa →</a>
+      <a href="https://dblots.pl/viewtopic.php?t=93578" target="_blank" rel="noopener noreferrer" style="color: var(--torch); text-decoration: none; border-bottom: 1px solid var(--torch);">Zobacz pełny poradnik do questu →</a>
     </p>
   </header>
 
@@ -317,15 +317,15 @@
     </div>
   </div>
 
-  <footer>dblots &nbsp;|&nbsp; Kolumny: G↓ · A↓ · H↓ · B↓ &nbsp;|&nbsp; Wiersze: C→ · D→ · E→ · F→</footer>
+  <footer>Gero Laboratory &nbsp;|&nbsp; Kolumny: G↓ · A↓ · H↓ · B↓ &nbsp;|&nbsp; Wiersze: C→ · D→ · E→ · F→</footer>
 </div>
 
 <script>
 // ---------------------------------------------------------------------
-// LOGIKA PLANSZY (odzwierciedla zasady questa)
+// LOGIKA PLANSZY (odzwierciedla regulamin questa ustalony z GM)
 // ---------------------------------------------------------------------
 const COLORS = ["C", "Z", "B", "S"]; // czarny, zolty, bialy, szary
-const TARGET = ["C","C","C","C", "Z","Z","Z","Z", "B","B","B","B", "S","S","S","S"];
+const TARGET = ["Z","Z","Z","Z", "B","B","B","B", "S","S","S","S", "C","C","C","C"];
 
 // typ, indeks (0-3), kierunek: dla kolumny +1=dol,-1=gora; dla wiersza +1=prawo,-1=lewo
 const MOVES = {
